@@ -14,8 +14,8 @@ const int PWM_PIN = D1;
 const int LED_PIN = D4;
 const int PWM_FREQUENCY = 1000;
 const int PWM_RANGE = 1023;
-const int CENTER_PWM = 47; // Visual center of meter
-const int MAX_PWM = 94; // Visual maximum of meter
+const int CENTER_PWM = 46; // Visual center of meter
+const int MAX_PWM = 91; // Visual maximum of meter
 
 unsigned long lastFetch = 0;
 const unsigned long fetchInterval = 30000; // 30 seconds
