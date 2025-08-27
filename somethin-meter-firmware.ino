@@ -41,6 +41,10 @@ void setup() {
   Serial.println("  'fetch' (manual fetch)");
   Serial.println("");
   Serial.println("Auto-fetching probability every 30 seconds...");
+  
+  // Fetch immediately on startup
+  fetchProbabilityData();
+  lastFetch = millis();
 }
 
 void loop() {
