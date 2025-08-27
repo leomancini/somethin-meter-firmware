@@ -11,6 +11,7 @@ const char* password = "";
 const char* endpoint = "http://somethin-meter-proxy.noshado.ws/";
 
 const int PWM_PIN = D1;
+const int LED_PIN = D4;
 const int PWM_FREQUENCY = 1000;
 const int PWM_RANGE = 1023;
 const int CENTER_PWM = 47; // Visual center of meter
@@ -27,13 +28,21 @@ void setup() {
   delay(1000);
   
   pinMode(PWM_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   analogWriteFreq(PWM_FREQUENCY);
   analogWriteRange(PWM_RANGE);
   
+  // Turn off built-in LED (HIGH = off for built-in LED)
+  digitalWrite(LED_BUILTIN, HIGH);
+  
   setMeterValue(0);
+  digitalWrite(LED_PIN, LOW); // External LED off initially
   connectToWiFi();
   
   Serial.println("PWM initialized on pin D1");
+  Serial.println("Status LED on pin D4");
+  Serial.println("Built-in LED disabled");
   Serial.println("Manual commands available:");
   Serial.println("  0.0-1.0 (decimal values, 0.5 = center, 1.0 = max)");
   Serial.println("  'center' (set to 0.5)");
@@ -92,11 +101,27 @@ void connectToWiFi() {
   Serial.println();
   Serial.print("WiFi connected with IP address: ");
   Serial.println(WiFi.localIP());
+  
+  // Turn on LED when connected
+  digitalWrite(LED_PIN, HIGH);
+  Serial.println("Status LED: ON (WiFi connected)");
+}
+
+void blinkLED() {
+  // Quick blink to indicate data received
+  digitalWrite(LED_PIN, LOW);
+  delay(100);
+  digitalWrite(LED_PIN, HIGH);
+  delay(100);
+  digitalWrite(LED_PIN, LOW);
+  delay(100);
+  digitalWrite(LED_PIN, HIGH);
 }
 
 void fetchProbabilityData() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi not connected, attempting reconnection...");
+    digitalWrite(LED_PIN, LOW); // Turn off LED when disconnected
     connectToWiFi();
     return;
   }
@@ -113,6 +138,9 @@ void fetchProbabilityData() {
       String payload = http.getString();
       Serial.println("OK");
       Serial.println("Response: " + payload);
+      
+      // Blink LED to indicate successful data fetch
+      blinkLED();
       
       DynamicJsonDocument doc(1024);
       DeserializationError error = deserializeJson(doc, payload);
