@@ -29,20 +29,17 @@ void setup() {
   
   pinMode(PWM_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
-  pinMode(LED_BUILTIN, OUTPUT);
   analogWriteFreq(PWM_FREQUENCY);
   analogWriteRange(PWM_RANGE);
   
-  // Turn off built-in LED (HIGH = off for built-in LED)
-  digitalWrite(LED_BUILTIN, HIGH);
+  // Keep external LED off until WiFi connects
+  digitalWrite(LED_PIN, LOW);
   
   setMeterValue(0);
-  digitalWrite(LED_PIN, LOW); // External LED off initially
   connectToWiFi();
   
   Serial.println("PWM initialized on pin D1");
   Serial.println("Status LED on pin D4");
-  Serial.println("Built-in LED disabled");
   Serial.println("Manual commands available:");
   Serial.println("  0.0-1.0 (decimal values, 0.5 = center, 1.0 = max)");
   Serial.println("  'center' (set to 0.5)");
@@ -93,16 +90,20 @@ void connectToWiFi() {
   Serial.print("Connecting to WiFi");
   WiFi.begin(ssid, password);
   
+  // Keep external LED off while connecting
+  digitalWrite(LED_PIN, LOW);
+  
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+    digitalWrite(LED_PIN, LOW);
   }
   
   Serial.println();
   Serial.print("WiFi connected with IP address: ");
   Serial.println(WiFi.localIP());
   
-  // Turn on LED when connected
+  // Turn on external LED only after WiFi is connected
   digitalWrite(LED_PIN, HIGH);
   Serial.println("Status LED: ON (WiFi connected)");
 }
@@ -121,7 +122,7 @@ void blinkLED() {
 void fetchProbabilityData() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi not connected, attempting reconnection...");
-    digitalWrite(LED_PIN, LOW); // Turn off LED when disconnected
+    digitalWrite(LED_PIN, LOW); // Turn off external LED when disconnected
     connectToWiFi();
     return;
   }
