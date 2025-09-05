@@ -13,17 +13,21 @@ const char* ssid = "";
 const char* password = "";
 const char* endpoint = "http://somethin-meter-proxy.noshado.ws/";
 
-// Pin assignments
-const int PWM_PIN = D3;  // Changed from D1 (D1 is now SCL for I2C)
+// Status LED settings
 const int LED_PIN = D4;
-const int SDA_PIN = D2;  // GPIO4
-const int SCL_PIN = D1;  // GPIO5
+const int LED_BRIGHTNESS = 50;
 
-// PWM settings
+// LCD module settings
+const int SDA_PIN = D2;
+const int SCL_PIN = D1;
+
+// Meter settings
+const int PWM_PIN = D3;
 const int PWM_FREQUENCY = 1000;
 const int PWM_RANGE = 1023;
-const int CENTER_PWM = 46;  // Visual center of meter
-const int MAX_PWM = 91;     // Visual maximum of meter
+const int MIN_PWM = 1; // Visual min of meter
+const int CENTER_PWM = 47; // Visual center of meter
+const int MAX_PWM = 94; // Visual max of meter
 
 // Timing
 unsigned long lastFetch = 0;
@@ -85,8 +89,6 @@ void setup() {
   Serial.println("LCD initialized on I2C (SDA=D2, SCL=D1)");
   Serial.println("Manual commands available:");
   Serial.println("  0.0-1.0 (decimal values, 0.5 = center, 1.0 = max)");
-  Serial.println("  'center' (set to 0.5)");
-  Serial.println("  'off' (turn off)");
   Serial.println("  'fetch' (manual fetch)");
   Serial.println("");
   Serial.println("Auto-fetching probability every 30 seconds...");
@@ -106,17 +108,7 @@ void loop() {
     String command = Serial.readStringUntil('\n');
     command.trim();
 
-    if (command == "center") {
-      setMeterValue(0.5);
-      updateLCDManual(0.5);
-      Serial.println("Manual: Meter set to CENTER (0.5)");
-    } else if (command == "off") {
-      analogWrite(PWM_PIN, 0);
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("METER OFF");
-      Serial.println("Manual: Meter OFF");
-    } else if (command == "fetch") {
+    if (command == "fetch") {
       fetchProbabilityData();
     } else {
       float value = command.toFloat();
@@ -125,7 +117,7 @@ void loop() {
         updateLCDManual(value);
         Serial.println("Manual: Meter set to " + String(value, 3) + " (" + String(valueToPercentage(value), 1) + "% PWM)");
       } else {
-        Serial.println("Invalid input. Use 0.0-1.0, 'center', 'off', or 'fetch'");
+        Serial.println("Invalid input. Use 0.0-1.0, or 'fetch'");
         Serial.println("Examples: 0.0 (min), 0.5 (center), 1.0 (max)");
       }
     }
@@ -156,7 +148,7 @@ void connectToWiFi() {
   Serial.println(WiFi.localIP());
 
   // Turn on external LED only after WiFi is connected
-  analogWrite(LED_PIN, 25);
+  analogWrite(LED_PIN, LED_BRIGHTNESS);
   Serial.println("Status LED: ON (WiFi connected)");
 
   lcd.clear();
@@ -172,11 +164,11 @@ void blinkLED() {
   // Quick blink to indicate data received
   analogWrite(LED_PIN, 0);
   delay(100);
-  analogWrite(LED_PIN, 25);
+  analogWrite(LED_PIN, LED_BRIGHTNESS);
   delay(100);
   analogWrite(LED_PIN, 0);
   delay(100);
-  analogWrite(LED_PIN, 25);
+  analogWrite(LED_PIN, LED_BRIGHTNESS);
 }
 
 void fetchProbabilityData() {
@@ -346,7 +338,7 @@ void setMeterValue(float value) {
   float pwmPercentage;
 
   if (value <= 0.5) {
-    pwmPercentage = map(value * 1000, 0, 500, 0, CENTER_PWM * 10) / 10.0;
+    pwmPercentage = map(value * 1000, 0, 500, MIN_PWM * 10, CENTER_PWM * 10) / 10.0;
   } else {
     pwmPercentage = map((value - 0.5) * 1000, 0, 500, CENTER_PWM * 10, MAX_PWM * 10) / 10.0;
   }
@@ -356,9 +348,15 @@ void setMeterValue(float value) {
 }
 
 float valueToPercentage(float value) {
+  value = constrain(value, 0.0, 1.0);
+
+  float pwmPercentage;
+
   if (value <= 0.5) {
-    return map(value * 1000, 0, 500, 0, CENTER_PWM * 10) / 10.0;
+    pwmPercentage = map(value * 1000, 0, 500, MIN_PWM * 10, CENTER_PWM * 10) / 10.0;
   } else {
-    return map((value - 0.5) * 1000, 0, 500, CENTER_PWM * 10, MAX_PWM * 10) / 10.0;
+    pwmPercentage = map((value - 0.5) * 1000, 0, 500, CENTER_PWM * 10, MAX_PWM * 10) / 10.0;
   }
+
+  return pwmPercentage;  // already calibrated as %
 }
