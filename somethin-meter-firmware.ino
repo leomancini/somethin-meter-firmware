@@ -31,7 +31,7 @@ const int MAX_PWM = 94; // Visual max of meter
 
 // Timing
 unsigned long lastFetch = 0;
-const unsigned long fetchInterval = 30000;  // 30 seconds
+const unsigned long fetchInterval = 10000;  // 10 seconds
 
 // Network and HTTP
 WiFiClient wifiClient;
